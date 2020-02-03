@@ -14,12 +14,11 @@ class CharsetMatch : public Nan::ObjectWrap
 public:
 
     static void
-    RegisterClass(const v8::Handle<v8::Object> target) {
+    RegisterClass(const v8::Local<v8::Object> target) {
         Nan::HandleScope scope;
         const char* ClassName = "CharsetMatch";
 
-        v8::Local<v8::FunctionTemplate> constructorTemplate
-            = Nan::New<v8::FunctionTemplate>(CharsetMatch::New);
+        v8::Local<v8::FunctionTemplate> constructorTemplate = Nan::New<v8::FunctionTemplate>(CharsetMatch::New);
 
         constructorTemplate->SetClassName(Nan::New(ClassName).ToLocalChecked());
         constructorTemplate->InstanceTemplate()->SetInternalFieldCount(1);
@@ -30,7 +29,7 @@ public:
         Nan::SetPrototypeMethod(constructorTemplate, "getConfidence", CharsetMatch::GetConfidence);
 
         // export class
-        target->Set(Nan::New(ClassName).ToLocalChecked(), constructorTemplate->GetFunction());
+        Nan::Set(target, Nan::New(ClassName).ToLocalChecked(), Nan::GetFunction(constructorTemplate).ToLocalChecked());
     }
 
     CharsetMatch(const char* bufferData, size_t bufferLength) {
@@ -57,7 +56,7 @@ public:
 
     // Internal API
     static CharsetMatch*
-    FromBuffer(v8::Handle<v8::Object> bufferObject) {
+    FromBuffer(v8::Local<v8::Object> bufferObject) {
         return new CharsetMatch(node::Buffer::Data(bufferObject),
                                 node::Buffer::Length(bufferObject));
     }
@@ -69,7 +68,11 @@ public:
         if (info.Length() < 1)
             Nan::ThrowError("Not enough arguments");
 
-        v8::Handle<v8::Object> buffer = info[0]->ToObject();
+        Nan::MaybeLocal<v8::Object> buffer_wrapper = Nan::To<v8::Object>(info[0]);
+        if (buffer_wrapper.IsEmpty())
+            Nan::ThrowTypeError("Expected Buffer for the argument");
+
+        v8::Local<v8::Object> buffer = buffer_wrapper.ToLocalChecked();
 
         if (!node::Buffer::HasInstance(buffer))
             Nan::ThrowTypeError("Expected Buffer for the argument");
